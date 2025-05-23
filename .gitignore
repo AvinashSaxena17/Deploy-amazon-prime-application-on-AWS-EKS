@@ -1,0 +1,12 @@
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.lock.hcl
+
+# Keys
+*.pem
+
+# Specific local path (redundant if using the pattern above, but safe)
+terraform_code/ec2_server/.terraform/
+terraform_code/ec2_server/.terraform/

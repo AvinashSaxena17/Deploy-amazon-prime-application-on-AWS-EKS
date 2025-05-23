@@ -6,7 +6,7 @@ This repository contains the source code for an Amazon Prime clone application, 
 - **Jenkins**: CI/CD automation tool.
 - **SonarQube**: Code quality analysis and quality gate tool.
 - **NPM**: Build tool for NodeJS.
-- **Aqua Trivy**: Security vulnerability scanner.
+- **Trivy**: Security vulnerability scanner.
 - **Docker**: Containerization tool to create images.
 - **AWS ECR**: Repository to store Docker images.
 - **AWS EKS**: Container management platform.

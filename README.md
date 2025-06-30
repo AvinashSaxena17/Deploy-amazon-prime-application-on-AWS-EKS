@@ -1,17 +1,17 @@
 ## Project Overview
-This repository contains the source code for an Amazon Prime clone application, integrated with a complete CI/CD pipeline. The application is deployed on AWS EKS (Elastic Kubernetes Service) and monitored using Argo CD, Prometheus, and Grafana.
+This repository delivers a full-featured Amazon Prime clone application, supported by an automated CI/CD pipeline. The deployment runs on AWS EKS, with robust monitoring and management using Argo CD, Prometheus, and Grafana.
 
-- **Terraform**: Infrastructure as Code (IaC) tool to create AWS infrastructure such as EC2 instances and EKS clusters.
-- **GitHub**: Source code management.
-- **Jenkins**: CI/CD automation tool.
-- **SonarQube**: Code quality analysis and quality gate tool.
-- **NPM**: Build tool for NodeJS.
-- **Trivy**: Security vulnerability scanner.
-- **Docker**: Containerization tool to create images.
-- **AWS ECR**: Repository to store Docker images.
-- **AWS EKS**: Container management platform.
-- **ArgoCD**: Continuous deployment tool.
-- **Prometheus & Grafana**: Monitoring and alerting tools.
+- **Terraform**: Automates AWS infrastructure provisioning, such as EC2 instances and EKS clusters.
+- **GitHub**: Version control and collaboration platform for managing source code.
+- **Jenkins**: Orchestrates CI/CD workflows for seamless automation.
+- **SonarQube**: Ensures code quality with static analysis and enforceable quality gates.
+- **NPM**: Handles build and dependency management for Node.js projects.
+- **Trivy**: Scans containers for security vulnerabilities.
+- **Docker**: Packages and deploys application components as portable containers.
+- **AWS ECR**: Hosts and manages Docker images securely.
+- **AWS EKS**: Manages and scales Kubernetes workloads.
+- **ArgoCD**: Automates GitOps-based continuous deployment.
+- **Prometheus & Grafana**: Provide comprehensive metrics collection, visualization, and alerting.
 
 ## Pre-requisites
 1. **AWS Account**: Ensure you have an AWS account. [Create an AWS Account](https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-creating.html)
@@ -27,9 +27,8 @@ This repository contains the source code for an Amazon Prime clone application, 
 ## Infrastructure Setup Using Terraform
 1. **Clone the Repository** (Open Command Prompt & run below):
    ```bash
-   git clone https://github.com/pandacloud1/DevopsProject2.git
-   cd DevopsProject2
-   code .   # this command will open VS code in backend
+   git clone https://github.com/AvinashSaxena17/Deploy-amazon-prime-application-on-AWS-EKS.git
+   cd Deploy-amazon-prime-application-on-AWS-EKS/
    ```
 2. **Initialize and Apply Terraform**:
   - Open `terraform_code/ec2_server/main.tf` in VS Code.
@@ -37,10 +36,11 @@ This repository contains the source code for an Amazon Prime clone application, 
      ```bash
      aws configure
      terraform init
-     terraform apply --auto-approve
+     terraform apply -auto-approve 
      ```
+(for giving auto permission to terraform to create the resources)
 
-This will create the EC2 instance, security groups, and install necessary tools like Jenkins, Docker, SonarQube, etc.
+This process will provision the EC2 instance and configure the required security groups, while also installing essential tools such as Jenkins, Docker, SonarQube, and more.
 
 ## SonarQube Configuration
 1. **Login Credentials**: Use `admin` for both username and password.
@@ -60,19 +60,18 @@ This will create the EC2 instance, security groups, and install necessary tools 
 ## Pipeline Overview
 ### Pipeline Stages
 1. **Git Checkout**: Clones the source code from GitHub.
-2. **SonarQube Analysis**: Performs static code analysis.
-3. **Quality Gate**: Ensures code quality standards.
+2. **SonarQube Analysis**: Runs static code analysis to detect bugs and code smells.
+3. **Quality Gate**: Enforces code quality standards before proceeding.
 4. **Install NPM Dependencies**: Installs NodeJS packages.
-5. **Trivy Security Scan**: Scans the project for vulnerabilities.
-6. **Docker Build**: Builds a Docker image for the project.
-7. **Push to AWS ECR**: Tags and pushes the Docker image to ECR.
-8. **Image Cleanup**: Deletes images from the Jenkins server to save space.
+5. **Trivy Security Scan**: Scans for vulnerabilities in the project.
+6. **Docker Build**: Creates a Docker image for the application.
+7. **Push to AWS ECR**: Tags and pushes the Docker image to Amazon ECR.
+8. **Image Cleanup**: Removes local images on the Jenkins server to free up space.
 
 ### Running Jenkins Pipeline
-Create and run the build pipeline in Jenkins. The pipeline will build, analyze, and push the project Docker image to ECR.
-Create a Jenkins pipeline by adding the following script:
+This pipeline will build the project, perform code analysis, and push the resulting Docker image to AWS ECR.
 
-### Build Pipeline
+**To set it up, create a Jenkins CI pipeline and add the following script:**
 
 ```groovy
 pipeline {
@@ -96,7 +95,7 @@ pipeline {
         stage('1. Git checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/pandacloud1/DevopsProject2.git'
+                    url: 'https://github.com/AvinashSaxena17/Deploy-amazon-prime-application-on-AWS-EKS.git'
             }
         }
 
@@ -194,13 +193,54 @@ pipeline {
 }
 
 ```
+## Crete EKS Cluster using terraform :
+```
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "19.15.1"
 
+  cluster_name                   = local.name
+  cluster_endpoint_public_access = true
+
+  cluster_addons = {
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent = true
+    }
+  }
+
+  vpc_id                   = module.vpc.vpc_id
+  subnet_ids               = module.vpc.private_subnets
+
+  eks_managed_node_groups = {
+    panda-node = {
+      min_size     = 2
+      max_size     = 4
+      desired_size = 2
+
+      instance_types = ["t2.medium"]
+      capacity_type  = "SPOT"
+
+      tags = {
+        ExtraTag = "Production_Node"
+      }
+    }
+  }
+
+  tags = local.tags
+}
+```
 ## Continuous Deployment with ArgoCD
-1. **Create EKS Cluster**: Use Terraform to create an EKS cluster and related resources.
-2. **Deploy Amazon Prime Clone**: Use ArgoCD to deploy the application using Kubernetes YAML files.
-3. **Monitoring Setup**: Install Prometheus and Grafana using Helm charts for monitoring the Kubernetes cluster.
+1. **Create EKS Cluster**: Provision an EKS cluster and its associated AWS resources using Terraform.
+2. **Deploy Amazon Prime Clone**: Deploy the application to the cluster with ArgoCD, using Kubernetes manifest files.
+3. **Monitoring Setup**: Install Prometheus and Grafana via Helm charts to enable monitoring of the Kubernetes cluster.
 
-### Deployment Pipeline
+**Create a Jenkins CD pipeline and add the following script:**
 ```groovy
 pipeline {
     agent any
@@ -266,7 +306,6 @@ pipeline {
 
 ## Cleanup
 - Run cleanup pipelines to delete the resources such as load balancers, services, and deployment files.
-- Use `terraform destroy` to remove the EKS cluster and other infrastructure.
 
 ### Cleanup Pipeline
 ```groovy
@@ -342,4 +381,9 @@ pipeline {
     }
 }
 ```
+**This action uses the terraform destroy command to immediately destroy all resources in a Terraform workspace.**
+```
+terraform destroy -auto-approve
+```
+
 
